@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HomeworkHub</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <style>
+    :root { --accent: #2563eb; --muted:#6b7280; --bg:#f8fafc }
+    body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; margin:0; background:var(--bg); color:#0f172a; }
+    header { background: white; border-bottom: 1px solid #e6eef8; padding: 24px; }
+    .container { max-width: 1000px; margin: 32px auto; padding: 0 20px; }
+    h1 { margin: 0 0 8px 0; font-size: 1.75rem; }
+    p.lead { margin: 0 0 18px 0; color: var(--muted); }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); margin-top: 20px; }
+    .card { background: white; border-radius: 8px; padding: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04); }
+    a.button { display:inline-block; background:var(--accent); color:white; padding:8px 12px; border-radius:6px; text-decoration:none; }
+    .muted { color:var(--muted); font-size:0.95rem; }
+    pre { background:#0b1220; color:#cbd5e1; padding:12px; border-radius:6px; overflow:auto; font-size:0.9rem; }
+    footer { margin:48px 0 24px 0; color:var(--muted); text-align:center; }
+    .small { font-size:0.9rem; color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>HomeworkHub</h1>
+      <p class="lead">A minimal homepage for your HomeworkHub project — links to the demo, schema, and example question template.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <div class="card">
+        <h2>Live demo</h2>
+        <p class="muted">Open the lightweight HTML question demo that was added under public/question.html.</p>
+        <p><a class="button" href="./public/question.html" target="_blank" rel="noopener">Open demo</a></p>
+        <p class="small">Tip: If you view this file via GitHub Pages or a static server, the demo opens in a new tab.</p>
+      </div>
+
+      <div class="card">
+        <h2>Example question template</h2>
+        <p class="muted">Preview the metadata from example_question_template.json (loaded below).</p>
+        <div id="templatePreview" style="margin-top:8px;">
+          <p class="small">Loading template preview…</p>
+        </div>
+        <p style="margin-top:10px"><a href="./example_question_template.json" target="_blank" rel="noopener">Open JSON</a></p>
+      </div>
+
+      <div class="card">
+        <h2>Database schema</h2>
+        <p class="muted">View the schema.sql file used to seed your PostgreSQL schema.</p>
+        <p><a class="button" href="./schema.sql" target="_blank" rel="noopener">View schema.sql</a></p>
+      </div>
+
+      <div class="card">
+        <h2>Repository readme</h2>
+        <p class="muted">Project overview, goals and next steps are in the README.</p>
+        <p><a class="button" href="./README.md" target="_blank" rel="noopener">Open README</a></p>
+      </div>
+    </div>
+
+    <section style="margin-top:28px" class="card">
+      <h3>Quick preview</h3>
+      <p class="muted">This shows the template title, description, variables and skill tags fetched from example_question_template.json (if present).</p>
+      <div id="previewArea" style="margin-top:12px"></div>
+      <pre id="jsonDebug" style="display:none"></pre>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="small">HomeworkHub — simple homepage</div>
+    </div>
+  </footer>
+
+  <script>
+    // Load and show some fields from the example template, if the file exists
+    async function loadTemplatePreview() {
+      const previewEl = document.getElementById('templatePreview');
+      const area = document.getElementById('previewArea');
+      try {
+        const resp = await fetch('./example_question_template.json', { cache: 'no-store' });
+        if (!resp.ok) throw new Error('Not found');
+        const json = await resp.json();
+        // Render a compact preview
+        previewEl.innerHTML = `
+          <div><strong>${escapeHtml(json.title || 'Untitled')}</strong></div>
+          <div class="small" style="margin-top:6px">${escapeHtml(json.description || '')}</div>
+        `;
+        const vars = json.variables ? Object.entries(json.variables).map(([k,v]) => \`\${k}: \${v.type} (\${v.min ?? '-'}–\${v.max ?? '-'})\`) : [];
+        const skills = (json.skill_tags || []).join(', ') || '—';
+        area.innerHTML = \`
+          <div class="small"><strong>Variables</strong></div>
+          <div class="small" style="margin-bottom:8px">\${escapeHtml(vars.join('\\n'))}</div>
+          <div class="small"><strong>Skill tags</strong></div>
+          <div class="small">\${escapeHtml(skills)}</div>
+        \`;
+      } catch (err) {
+        previewEl.innerHTML = '<div class="small">example_question_template.json not found in repo root.</div>';
+        area.innerHTML = '';
+      }
+    }
+
+    function escapeHtml(s) {
+      if (!s) return '';
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    loadTemplatePreview();
+  </script>
+</body>
+</html>
