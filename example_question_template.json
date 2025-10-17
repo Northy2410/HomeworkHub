@@ -1,0 +1,33 @@
+{
+  "title": "Quadratic area problem - parameterised",
+  "description": "Generate a quadratic expression problem where student expands and finds numeric answer.",
+  "template": {
+    "prompt_markdown": "A rectangle has length (2x + a) and width (x + b). Expand and simplify the area expression, then evaluate for x = {x_val}. Show final numeric value.",
+    "render_latex": true
+  },
+  "variables": {
+    "a": { "type": "int", "min": 1, "max": 5 },
+    "b": { "type": "int", "min": 1, "max": 5 },
+    "x_val": { "type": "int", "min": 1, "max": 10 }
+  },
+  "answer_spec": {
+    "type": "expression_then_numeric",
+    "expression": " (2*x + a) * (x + b) ",
+    "simplify": true,
+    "tolerance": 0.0001,
+    "evaluation": {
+      "use_params": true,
+      "expected_numeric": "evaluate(expression, params)"
+    }
+  },
+  "grading": {
+    "auto_grade_steps": true,
+    "accept_equivalent_expressions": true,
+    "partial_credit": {
+      "simplification": 0.5,
+      "numeric_evaluation": 0.5
+    },
+    "seed_affects": ["a", "b", "x_val"]
+  },
+  "skill_tags": ["algebra:expand", "algebra:simplify", "algebra:evaluate"]
+}

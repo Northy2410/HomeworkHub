@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HomeworkHub — Question Demo</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <style>
+    body { font-family: system-ui, -apple-system, Arial, sans-serif; padding: 2rem; max-width: 800px; margin: auto; }
+    pre { background:#f6f8fa; padding:1rem; border-radius:6px; overflow:auto }
+    .question { margin: 1rem 0; font-size: 1.1rem }
+    .controls { margin: 1rem 0 }
+    button { padding: 0.5rem 1rem; font-size: 1rem }
+    .answer { margin-top: 1rem; padding: 1rem; background: #f0fff4; border-radius:6px }
+  </style>
+</head>
+<body>
+  <h1>HomeworkHub — Question Demo (HTML)</h1>
+
+  <div class="controls">
+    <label>Seed: <input id="seedInput" type="number" value="12345" /> </label>
+    <button id="genBtn">Generate question</button>
+    <button id="revealBtn">Reveal answer</button>
+  </div>
+
+  <div class="question" id="questionArea"></div>
+  <div class="answer" id="answerArea" style="display:none"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/seedrandom@3.0.5/seedrandom.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@11.12.0/lib/browser/math.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script>
+    // Embedded template (from example_question_template.json)
+    const template = {
+      "title": "Quadratic area problem - parameterised",
+      "description": "Generate a quadratic expression problem where student expands and finds numeric answer.",
+      "template": {
+        "prompt_markdown": "A rectangle has length (2x + a) and width (x + b). Expand and simplify the area expression, then evaluate for x = {x_val}. Show final numeric value.",
+        "render_latex": true
+      },
+      "variables": {
+        "a": { "type": "int", "min": 1, "max": 5 },
+        "b": { "type": "int", "min": 1, "max": 5 },
+        "x_val": { "type": "int", "min": 1, "max": 10 }
+      },
+      "answer_spec": {
+        "type": "expression_then_numeric",
+        "expression": " (2*x + a) * (x + b) ",
+        "simplify": true,
+        "tolerance": 0.0001
+      }
+    };
+
+    function randInt(rng, min, max) {
+      return Math.floor(rng() * (max - min + 1)) + min;
+    }
+
+    function generateParams(seed) {
+      const rng = new Math.seedrandom(String(seed));
+      const params = {};
+      for (const [name, spec] of Object.entries(template.variables)) {
+        if (spec.type === 'int') {
+          params[name] = randInt(rng, spec.min, spec.max);
+        } else {
+          // extendable for other types
+          params[name] = null;
+        }
+      }
+      return params;
+    }
+
+    function renderPrompt(params) {
+      let prompt = template.template.prompt_markdown;
+      // simple replacement of {x_val}
+      prompt = prompt.replace(/\{x_val\}/g, params.x_val);
+      // show algebraic expression using KaTeX
+      const expr = `(2x + ${params.a})(x + ${params.b})`;
+      const expanded = math.simplify(math.parse(expr).toString()).toString();
+      const html = `\n        <div><strong>Prompt:</strong></div>\n        <div>${escapeHtml(prompt)}</div>\n        <div style="margin-top:0.5rem"><strong>Algebraic expression:</strong></div>\n        <div id=\"katexExpr\"></div>\n        <div style="margin-top:0.5rem"><strong>Expanded (simplified):</strong></div>\n        <div id=\"katexExpanded\"></div>\n      `;
+      return { html, expr, expanded };
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function evaluateNumeric(expanded, params) {
+      // expanded is a string like "2*x^2 + ..."; replace x with numeric and eval
+      const scope = { x: params.x_val };
+      const node = math.parse(expanded);
+      const value = node.evaluate(scope);
+      return value;
+    }
+
+    document.getElementById('genBtn').addEventListener('click', () => {
+      const seed = document.getElementById('seedInput').value || Date.now();
+      const params = generateParams(seed);
+      const { html, expr, expanded } = renderPrompt(params);
+      document.getElementById('questionArea').innerHTML = html;
+      document.getElementById('answerArea').style.display = 'none';
+      // render katex for expressions
+      try {
+        katex.render(expr, document.getElementById('katexExpr'), { throwOnError: false });
+        katex.render(expanded, document.getElementById('katexExpanded'), { throwOnError: false });
+      } catch (e) {
+        document.getElementById('katexExpr').textContent = expr;
+        document.getElementById('katexExpanded').textContent = expanded;
+      }
+      // store for reveal
+      window._hw_params = params;
+      window._hw_expanded = expanded;
+      window._hw_expr = expr;
+    });
+
+    document.getElementById('revealBtn').addEventListener('click', () => {
+      if (!window._hw_params) return alert('Generate a question first');
+      const value = evaluateNumeric(window._hw_expanded, window._hw_params);
+      document.getElementById('answerArea').style.display = 'block';
+      document.getElementById('answerArea').innerHTML = `<strong>Numeric answer:</strong> ${value}`;
+    });
+
+    // generate one on load
+    document.getElementById('genBtn').click();
+  </script>
+</body>
+</html>
